@@ -250,8 +250,24 @@
         pickerController.delegate = self;
         pickerController.sourceType = UIImagePickerControllerSourceTypeCamera;
         pickerController.allowsEditing = NO;
+        //Create camera overlay
+        CGRect f = pickerController.view.bounds;
+        //f.size.height -= pickerController.navigationBar.bounds.size.height;
+        CGFloat barHeight = (f.size.height - f.size.width);
+        UIGraphicsBeginImageContext(f.size);
+        [[UIColor colorWithWhite:0 alpha:0.6] set];
+        //UIRectFillUsingBlendMode(CGRectMake(0, 0, f.size.width, barHeight), kCGBlendModeNormal);
+        UIRectFillUsingBlendMode(CGRectMake(0, f.size.height-barHeight, f.size.width, barHeight), kCGBlendModeNormal);
+        UIImage *overlayImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+        
+        UIImageView *overlayIV = [[UIImageView alloc] initWithFrame:f];
+        overlayIV.image = overlayImage;
+        pickerController.cameraOverlayView = overlayIV;
+
         // iOS 3.0
         pickerController.mediaTypes = [NSArray arrayWithObjects:mediaType, nil];
+
 
         if ([mediaType isEqualToString:(NSString*)kUTTypeMovie]){
             if (duration) {
@@ -273,7 +289,37 @@
         [self.viewController presentViewController:pickerController animated:YES completion:nil];
     }
 }
-
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event
+{
+    return NO;
+}
+- (void) addPhotoObservers {
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(removeCameraOverlay) name:@"_UIImagePickerControllerUserDidCaptureItem" object:nil ];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(addCameraOverlay) name:@"_UIImagePickerControllerUserDidRejectItem" object:nil ];
+}
+-(void)removeCameraOverlay {
+    if (pickerController) {
+        pickerController.cameraOverlayView = nil;
+    }
+}
+-(void)addCameraOverlay {
+    if (pickerController) {
+        //Create camera overlay
+        CGRect f = pickerController.view.bounds;
+        //f.size.height -= pickerController.navigationBar.bounds.size.height;
+        CGFloat barHeight = (f.size.height - f.size.width);
+        UIGraphicsBeginImageContext(f.size);
+        [[UIColor colorWithWhite:0 alpha:0.6] set];
+        //UIRectFillUsingBlendMode(CGRectMake(0, 0, f.size.width, barHeight), kCGBlendModeNormal);
+        UIRectFillUsingBlendMode(CGRectMake(0, f.size.height-barHeight, f.size.width, barHeight), kCGBlendModeNormal);
+        UIImage *overlayImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+        
+        UIImageView *overlayIV = [[UIImageView alloc] initWithFrame:f];
+        overlayIV.image = overlayImage;
+        pickerController.cameraOverlayView = overlayIV;
+    }
+}
 - (CDVPluginResult*)processVideo:(NSString*)moviePath forCallbackId:(NSString*)callbackId
 {
     // save the movie to photo album (only avail as of iOS 3.1)
